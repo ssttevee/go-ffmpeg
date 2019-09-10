@@ -126,7 +126,7 @@ func (j *Job) start(ctx context.Context, debug io.Writer) (<-chan Status, error)
 	}
 
 	if debug != nil {
-		debug.Write([]byte(strings.Join(cmd.Args, " ")))
+		debug.Write([]byte(strings.Join(cmd.Args, " ") + "\n\n"))
 	}
 
 	go parseProgress(stderr, debug, sendStatus)
