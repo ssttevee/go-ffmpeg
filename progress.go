@@ -62,7 +62,7 @@ func parseProgress(stderr io.Reader, tee io.Writer, updateStatus func(Status)) {
 				case "bitrate":
 					progress.Bitrate = match[2]
 				case "speed":
-					progress.Speed, _ = strconv.ParseFloat(match[2], 64)
+					progress.Speed, _ = strconv.ParseFloat(match[2][:len(match[2])-1], 64)
 				}
 			}
 		}
