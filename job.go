@@ -18,6 +18,12 @@ type Job struct {
 	outputs []outputMedia
 }
 
+// Output represents an ffmpeg output
+type Output interface {
+	URL() string
+	Options() []CliOption
+}
+
 // NewJob creates a new job
 func (c *Configuration) NewJob(options ...CliOption) *Job {
 	return &Job{
@@ -54,6 +60,14 @@ func (j *Job) AddOutputFile(file string, options ...CliOption) {
 	j.outputs = append(j.outputs, &mediaFile{
 		opts: options,
 		path: file,
+	})
+}
+
+// AddOutput adds an output
+func (j *Job) AddOutput(output Output) {
+	j.outputs = append(j.outputs, &mediaFile{
+		opts: output.Options(),
+		path: output.URL(),
 	})
 }
 
