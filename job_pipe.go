@@ -1,4 +1,4 @@
-// +build !windows,!plan9,!nacl,!js
+// +build !windows,!plan9,!nacl,!js,!nopipe
 
 package ffmpeg
 
@@ -10,58 +10,61 @@ import (
 
 // AddInputReader adds an input reader
 func (j *Job) AddInputReader(r io.Reader, options ...CliOption) (*Metadata, error) {
-	return j.addInput(&inputReader{
-		opts: options,
-		r:    r,
-	})
+	input, metadata, err := j.cfg.ProbeReader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	j.AddInput(input, options...)
+
+	return metadata, nil
 }
 
 // AddOutputReader adds an output reader
 func (j *Job) AddOutputReader(w io.Writer, options ...CliOption) {
-	j.addOutput(&outputWriter{
-		opts: options,
-		w:    w,
-	})
+	j.addOutput(&outputWriter{w}, options)
 }
 
 func (j *Job) buildArgs(args []string) ([]string, []*os.File, error) {
 	var extra []*os.File
 
 	for _, m := range j.inputs {
-		args = append(args, m.options()...)
+		args = append(args, flattenOptions(m.options)...)
 
 		var url string
-		switch v := m.(type) {
-		case *inputReader:
-			f, err := v.reader()
+		if r, ok := m.input.(io.Reader); ok {
+			pr, pw, err := os.Pipe()
 			if err != nil {
 				return nil, nil, err
 			}
 
-			extra = append(extra, f)
+			go io.Copy(pw, r)
+
+			extra = append(extra, pr)
 			url = fmt.Sprintf("/proc/self/fd/%d", 2+len(extra))
-		case *mediaFile:
-			url = v.file()
+		} else {
+			url = m.input.inputURL()
 		}
 
 		args = append(args, "-i", url)
 	}
 
 	for _, m := range j.outputs {
-		args = append(args, m.options()...)
+		args = append(args, flattenOptions(m.options)...)
 
 		var url string
-		switch v := m.(type) {
-		case *mediaFile:
-			url = v.file()
-		case *outputWriter:
-			f, err := v.writer()
+		if w, ok := m.output.(io.Writer); ok {
+			pr, pw, err := os.Pipe()
 			if err != nil {
 				return nil, nil, err
 			}
 
-			extra = append(extra, f)
+			go io.Copy(w, pr)
+
+			extra = append(extra, pw)
 			url = fmt.Sprintf("/proc/self/fd/%d", 2+len(extra))
+		} else {
+			url = m.output.outputURL()
 		}
 
 		args = append(args, url)

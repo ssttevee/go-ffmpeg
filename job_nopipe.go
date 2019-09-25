@@ -1,4 +1,4 @@
-// +build windows,plan9,nacl,js
+// +build windows plan9 nacl js nopipe
 
 package ffmpeg
 
@@ -10,27 +10,13 @@ func (j *Job) buildArgs(args []string) ([]string, []*os.File, error) {
 	var extra []*os.File
 
 	for _, m := range j.inputs {
-		args = append(args, m.options()...)
-
-		var url string
-		switch v := m.(type) {
-		case *mediaFile:
-			url = v.file()
-		}
-
-		args = append(args, "-i", url)
+		args = append(args, flattenOptions(m.options)...)
+		args = append(args, "-i", m.input.inputURL())
 	}
 
 	for _, m := range j.outputs {
-		args = append(args, m.options()...)
-
-		var url string
-		switch v := m.(type) {
-		case *mediaFile:
-			url = v.file()
-		}
-
-		args = append(args, url)
+		args = append(args, flattenOptions(m.options)...)
+		args = append(args, m.output.outputURL())
 	}
 
 	return args, extra, nil

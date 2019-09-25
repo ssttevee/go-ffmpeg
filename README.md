@@ -46,6 +46,14 @@ metadata, _ := job.AddInputFile("video.mp4")
 fmt.Printf("the video is %v seconds long", metadata.Format.Duration)
 ```
 
+You can also probe an input first, and then add it to a job.
+
+```go
+input, metadata, _ := cfg.Probe("video.mp4")
+fmt.Printf("the video is %v seconds long", metadata.Format.Duration)
+job.AddInput(input)
+```
+
 ### Streams (no windows support)
 
 ```go
@@ -63,6 +71,7 @@ job.AddOutputWriter(file)
 Each of the following methods accept `ffmpeg.CliOption`s from `ffmpeg.Option()` and `ffmpeg.Flag()`
 
 -   `Configuration.NewJob()`
+-   `Job.AddInput()`
 -   `Job.AddInputFile()`
 -   `Job.AddInputReader()`
 -   `Job.AddOutputFile()`

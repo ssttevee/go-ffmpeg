@@ -1,9 +1,27 @@
 package ffmpeg
 
+import (
+	"bytes"
+	"encoding/json"
+	"os/exec"
+)
+
+// ProbeError represents an error emitted by ffprobe
+type ProbeError struct {
+	Code    int64  `json:"code"`
+	Message string `json:"string"`
+}
+
+// Error returns an error message
+func (e *ProbeError) Error() string {
+	return "probe error: " + e.Message
+}
+
 // Metadata represents the output of ffprobe
 type Metadata struct {
-	Streams []Stream `json:"streams"`
-	Format  Format   `json:"format"`
+	Streams []Stream    `json:"streams"`
+	Format  *Format     `json:"format"`
+	Error   *ProbeError `json:"error"`
 }
 
 // Stream represents stream metadata
@@ -74,4 +92,28 @@ type Tags struct {
 	MinorVersion     string `json:"minor_version"`
 	CompatibleBrands string `json:"compatible_brands"`
 	Encoder          string `json:"encoder"`
+}
+
+func (c *Configuration) newProbeCommand(url string) *exec.Cmd {
+	return exec.Command(c.ffprobe, "-i", url, "-print_format", "json", "-show_format", "-show_streams", "-show_error")
+}
+
+// Probe reads metadata from the url using ffprobe and returns an
+// input media to be added to a job as well as the aformentioned metadata.
+func (c *Configuration) Probe(url string) (InputMedia, *Metadata, error) {
+	cmd := c.newProbeCommand(url)
+
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return nil, nil, err
+	}
+
+	var metadata Metadata
+	if err := json.Unmarshal(buf.Bytes(), &metadata); err != nil {
+		return nil, nil, err
+	}
+
+	return mediaFile(url), &metadata, nil
 }

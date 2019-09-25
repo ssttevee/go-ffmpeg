@@ -8,14 +8,24 @@ import (
 	"sync"
 )
 
+type jobInput struct {
+	input   InputMedia
+	options []CliOption
+}
+
+type jobOutput struct {
+	output  OutputMedia
+	options []CliOption
+}
+
 // Job represents an ffmpeg job
 type Job struct {
 	cfg *Configuration
 
 	globalOptions []CliOption
 
-	inputs  []inputMedia
-	outputs []outputMedia
+	inputs  []*jobInput
+	outputs []*jobOutput
 }
 
 // NewJob creates a new job
@@ -26,48 +36,45 @@ func (c *Configuration) NewJob(options ...CliOption) *Job {
 	}
 }
 
-func (j *Job) addInput(input inputMedia) (*Metadata, error) {
-	metadata, err := input.probe(j.cfg.ffprobe)
+// AddInput adds an input
+func (j *Job) AddInput(input InputMedia, options ...CliOption) {
+	j.inputs = append(j.inputs, &jobInput{
+		input:   input,
+		options: options,
+	})
+}
+
+// AddInputFile adds an input file
+func (j *Job) AddInputFile(url string, options ...CliOption) (*Metadata, error) {
+	input, metadata, err := j.cfg.Probe(url)
 	if err != nil {
 		return nil, err
 	}
 
-	j.inputs = append(j.inputs, input)
+	j.AddInput(input, options...)
 
 	return metadata, nil
 }
 
-// AddInputFile adds an input file
-func (j *Job) AddInputFile(file string, options ...CliOption) (*Metadata, error) {
-	return j.addInput(&mediaFile{
-		opts: options,
-		path: file,
+func (j *Job) addOutput(output OutputMedia, options []CliOption) {
+	j.outputs = append(j.outputs, &jobOutput{
+		output:  output,
+		options: options,
 	})
-}
-
-func (j *Job) addOutput(output outputMedia) {
-	j.outputs = append(j.outputs, output)
 }
 
 // AddOutputFile adds an output file
 func (j *Job) AddOutputFile(file string, options ...CliOption) {
-	j.outputs = append(j.outputs, &mediaFile{
-		opts: options,
-		path: file,
-	})
+	j.addOutput(mediaFile(file), options)
 }
 
 // Start starts the job
 func (j *Job) Start(ctx context.Context) (<-chan Status, error) {
-	return j.start(ctx, nil)
+	return j.StartDebug(ctx, nil)
 }
 
 // StartDebug starts the job and writes all output to w
 func (j *Job) StartDebug(ctx context.Context, w io.Writer) (<-chan Status, error) {
-	return j.start(ctx, w)
-}
-
-func (j *Job) start(ctx context.Context, debug io.Writer) (<-chan Status, error) {
 	var args []string
 
 	for _, option := range j.globalOptions {
@@ -125,11 +132,11 @@ func (j *Job) start(ctx context.Context, debug io.Writer) (<-chan Status, error)
 		return nil, err
 	}
 
-	if debug != nil {
-		debug.Write([]byte(strings.Join(cmd.Args, " ") + "\n\n"))
+	if w != nil {
+		w.Write([]byte(strings.Join(cmd.Args, " ") + "\n\n"))
 	}
 
-	go parseProgress(stderr, debug, sendStatus)
+	go parseProgress(stderr, w, sendStatus)
 
 	if err := cmd.Start(); err != nil {
 		return nil, err
@@ -147,4 +154,13 @@ func (j *Job) start(ctx context.Context, debug io.Writer) (<-chan Status, error)
 	}()
 
 	return statusChan, nil
+}
+
+func flattenOptions(options []CliOption) []string {
+	var args []string
+	for _, option := range options {
+		args = append(args, option.args()...)
+	}
+
+	return args
 }

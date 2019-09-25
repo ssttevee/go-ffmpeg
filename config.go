@@ -24,6 +24,7 @@ func configurationFromEnvironment() {
 	}
 }
 
+// Configuration represents valid paths to ffmpeg and ffprobe
 type Configuration struct {
 	ffmpeg         string
 	ffmpegVersion  string
@@ -31,6 +32,8 @@ type Configuration struct {
 	ffprobeVersion string
 }
 
+// DefaultConfiguration looks for and
+// returns a configuration from the environment
 func DefaultConfiguration() (*Configuration, error) {
 	defaultConfigOnce.Do(configurationFromEnvironment)
 	if defaultConfigError != nil {
@@ -40,6 +43,8 @@ func DefaultConfiguration() (*Configuration, error) {
 	return &defaultConfig, nil
 }
 
+// NewConfiguration validates the given paths to
+// ffmpeg and ffprobe and returns a configuration
 func NewConfiguration(ffmpeg, ffprobe string) (*Configuration, error) {
 	ffmpegVersion, err := util.TestBinary("ffmpeg", ffmpeg)
 	if err != nil {

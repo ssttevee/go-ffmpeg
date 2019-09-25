@@ -1,52 +1,21 @@
 package ffmpeg
 
-import (
-	"bytes"
-	"encoding/json"
-	"os/exec"
-)
-
-type inputMedia interface {
-	options() []string
-	probe(ffprobe string) (*Metadata, error)
+// InputMedia represents some input media
+type InputMedia interface {
+	inputURL() string
 }
 
-type outputMedia interface {
-	options() []string
+// OutputMedia represents some output media
+type OutputMedia interface {
+	outputURL() string
 }
 
-type mediaFile struct {
-	opts []CliOption
-	path string
+type mediaFile string
+
+func (m mediaFile) inputURL() string {
+	return string(m)
 }
 
-func (m *mediaFile) options() []string {
-	var args []string
-	for _, option := range m.opts {
-		args = append(args, option.args()...)
-	}
-
-	return args
-}
-
-func (m *mediaFile) file() string {
-	return m.path
-}
-
-func (m *mediaFile) probe(ffprobe string) (*Metadata, error) {
-	cmd := exec.Command(ffprobe, "-i", m.path, "-print_format", "json", "-show_format", "-show_streams", "-show_error")
-
-	var buf bytes.Buffer
-	cmd.Stdout = &buf
-
-	if err := cmd.Run(); err != nil {
-		return nil, err
-	}
-
-	var metadata Metadata
-	if err := json.Unmarshal(buf.Bytes(), &metadata); err != nil {
-		return nil, err
-	}
-
-	return &metadata, nil
+func (m mediaFile) outputURL() string {
+	return string(m)
 }

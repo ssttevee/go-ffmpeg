@@ -3,11 +3,12 @@ package ffmpeg
 import (
 	"bufio"
 	"bytes"
-	"github.com/ssttevee/go-ffmpeg/internal/util"
 	"io"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/ssttevee/go-ffmpeg/internal/util"
 )
 
 var equalsPattern = regexp.MustCompile(`(\w+)=\s*([^ ]+)`)
