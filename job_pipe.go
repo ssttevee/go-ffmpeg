@@ -38,7 +38,10 @@ func (j *Job) buildArgs(args []string) ([]string, []*os.File, error) {
 				return nil, nil, err
 			}
 
-			go io.Copy(pw, r)
+			go func() {
+				io.Copy(pw, r)
+				pw.Close()
+			}()
 
 			extra = append(extra, pr)
 			url = fmt.Sprintf("/proc/self/fd/%d", 2+len(extra))
