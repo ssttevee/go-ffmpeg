@@ -143,6 +143,8 @@ func (j *Job) StartDebug(ctx context.Context, w io.Writer) (<-chan Status, error
 	}
 
 	go func() {
+		defer j.cleanup()
+
 		if err := cmd.Wait(); err != nil {
 			sendFinalStatus(&Error{
 				Arguments: args,

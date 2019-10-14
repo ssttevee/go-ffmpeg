@@ -21,3 +21,7 @@ func (j *Job) buildArgs(args []string) ([]string, []*os.File, error) {
 
 	return args, extra, nil
 }
+
+func (*Job) cleanup() error {
+	return nil
+}

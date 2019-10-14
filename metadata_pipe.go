@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"io"
 	"os/exec"
+
+	"github.com/ssttevee/go-disk-buffer"
 )
 
 // ProbeReader reads metadata from the input stream using ffprobe and
@@ -14,8 +16,8 @@ import (
 func (c *Configuration) ProbeReader(r io.Reader) (InputMedia, *Metadata, error) {
 	cmd := c.newProbeCommand("-")
 
-	var head bytes.Buffer
-	cmd.Stdin = io.TeeReader(r, &head)
+	head := buffer.New(1 << 27) // 128MiB
+	cmd.Stdin = io.TeeReader(r, head)
 
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
@@ -36,6 +38,6 @@ func (c *Configuration) ProbeReader(r io.Reader) (InputMedia, *Metadata, error) 
 
 	return &inputReader{
 		r:   r,
-		buf: &head,
+		buf: head,
 	}, &metadata, nil
 }

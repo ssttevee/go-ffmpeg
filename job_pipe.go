@@ -75,3 +75,15 @@ func (j *Job) buildArgs(args []string) ([]string, []*os.File, error) {
 
 	return args, extra, nil
 }
+
+func (j *Job) cleanup() error {
+	for _, input := range j.inputs {
+		if closer, ok := input.input.(io.Closer); ok {
+			if err := closer.Close(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
