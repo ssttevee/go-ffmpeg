@@ -3,6 +3,7 @@ package ffmpeg
 import (
 	"context"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -69,12 +70,12 @@ func (j *Job) AddOutputFile(file string, options ...CliOption) {
 }
 
 // Start starts the job
-func (j *Job) Start(ctx context.Context) (<-chan Status, error) {
+func (j *Job) Start(ctx context.Context) (*os.Process, <-chan Status, error) {
 	return j.StartDebug(ctx, nil)
 }
 
 // StartDebug starts the job and writes all output to w
-func (j *Job) StartDebug(ctx context.Context, w io.Writer) (<-chan Status, error) {
+func (j *Job) StartDebug(ctx context.Context, w io.Writer) (*os.Process, <-chan Status, error) {
 	var args []string
 
 	for _, option := range j.globalOptions {
@@ -85,7 +86,7 @@ func (j *Job) StartDebug(ctx context.Context, w io.Writer) (<-chan Status, error
 
 	args, extra, err := j.buildArgs(args)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	cmd := exec.CommandContext(ctx, j.cfg.ffmpeg, args...)
@@ -129,7 +130,7 @@ func (j *Job) StartDebug(ctx context.Context, w io.Writer) (<-chan Status, error
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if w != nil {
@@ -139,7 +140,7 @@ func (j *Job) StartDebug(ctx context.Context, w io.Writer) (<-chan Status, error
 	go parseProgress(stderr, w, sendStatus)
 
 	if err := cmd.Start(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	go func() {
@@ -155,7 +156,7 @@ func (j *Job) StartDebug(ctx context.Context, w io.Writer) (<-chan Status, error
 		}
 	}()
 
-	return statusChan, nil
+	return cmd.Process, statusChan, nil
 }
 
 func flattenOptions(options []CliOption) []string {
