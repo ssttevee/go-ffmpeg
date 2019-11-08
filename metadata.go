@@ -106,13 +106,18 @@ func (c *Configuration) Probe(url string) (InputMedia, *Metadata, error) {
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
 
-	if err := cmd.Run(); err != nil {
+	err := cmd.Run()
+	if _, ok := err.(*exec.ExitError); !ok && err != nil {
 		return nil, nil, err
 	}
 
 	var metadata Metadata
 	if err := json.Unmarshal(buf.Bytes(), &metadata); err != nil {
 		return nil, nil, err
+	}
+
+	if metadata.Error != nil {
+		return nil, nil, metadata.Error
 	}
 
 	return mediaFile(url), &metadata, nil
