@@ -50,6 +50,7 @@ type Stream struct {
 	DivxPacked         string      `json:"divx_packed"`
 	RFrameRrate        string      `json:"r_frame_rate"`
 	AvgFrameRate       string      `json:"avg_frame_rate"`
+	SampleRate         string      `json:"sample_rate"`
 	TimeBase           string      `json:"time_base"`
 	DurationTs         int         `json:"duration_ts"`
 	Duration           string      `json:"duration"`
