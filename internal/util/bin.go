@@ -38,7 +38,7 @@ func TestBinary(name, path string) (version string, _ error) {
 		return "", err
 	}
 
-	pattern, err := regexp.Compile("^" + regexp.QuoteMeta(name) + " version (.+) Copyright .* the FFmpeg developers\n")
+	pattern, err := regexp.Compile("^" + regexp.QuoteMeta(name) + " version (.+) Copyright .* the FFmpeg developers\r?\n")
 	if err != nil {
 		return "", err
 	}
